@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>E-joutia</title>
+
+  <!-- Security: basic privacy + hardening -->
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()" />
+
+  <!-- Security: CSP (reduce XSS risk) -->
+  <!-- We allow picsum.photos for placeholders + data: for uploaded images -->
+  <meta http-equiv="Content-Security-Policy"
+        content="
+          default-src 'self';
+          base-uri 'self';
+          object-src 'none';
+          frame-ancestors 'none';
+          form-action 'self';
+          img-src 'self' data: https://picsum.photos;
+          style-src 'self';
+          script-src 'self';
+          connect-src 'self';
+          upgrade-insecure-requests;
+        ">
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ===== Topbar ===== -->
+  <header class="topbar" id="home">
+    <div class="brand">
+      <div class="logo">E-joutia</div>
+      <div class="tagline">joutia jat hta lbin edik</div>
+    </div>
+
+    <nav class="nav">
+      <a href="#home">Home</a>
+      <a href="#produits">Produits</a>
+      <a href="#promotions">Promotions</a>
+      <a href="#avis">Avis</a>
+      <a href="#apropos">À propos</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="actions">
+      <a class="btn ghost" href="https://instagram.com/ussef_toumi" target="_blank" rel="noopener">Instagram</a>
+      <a class="btn" href="https://wa.me/212666771366?text=Salam!%20bghit%20nsa9si%203la%20E-joutia" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ===== Hero / Search ===== -->
+    <section class="hero">
+      <div class="heroText">
+        <h1>بيع وشري بسهولة فالمغرب 🇲🇦</h1>
+        <p class="muted">
+          دير annonce ديالك وخلّي الناس يتاصلو بيك عبر WhatsApp.
+          <br />Delivery لجميع المدن.
+        </p>
+
+        <div class="heroBadges">
+          <span class="badge">Green / White / Light Gray</span>
+          <span class="badge">Marketplace style</span>
+          <span class="badge">WhatsApp orders</span>
+        </div>
+      </div>
+
+      <div class="heroCard">
+        <h2 class="heroCardTitle">Rechercher & Filtrer</h2>
+
+        <input id="searchInput" class="input" placeholder="Rechercher: iPhone, PC, TV..." autocomplete="off" />
+
+        <div class="grid2">
+          <select id="categoryFilter" class="input">
+            <option value="all">Toutes catégories</option>
+            <option>Téléphones</option>
+            <option>PC</option>
+            <option>TV</option>
+            <option>Électroménager</option>
+            <option>Gaming</option>
+            <option>Voitures</option>
+            <option>Maisons</option>
+            <option>Autre</option>
+          </select>
+
+          <select id="cityFilter" class="input">
+            <option value="all">Toutes villes</option>
+          </select>
+        </div>
+
+        <div class="grid2">
+          <select id="sortSelect" class="input">
+            <option value="new">Plus récents</option>
+            <option value="cheap">Prix: + bas</option>
+            <option value="exp">Prix: + haut</option>
+          </select>
+
+          <a class="btn ghost" href="#add">Ajouter annonce</a>
+        </div>
+
+        <div class="muted smallSpace">
+          Résultats: <b id="resultsCount">0</b>
+        </div>
+
+    </section>
+
+    <!-- ===== Produits ===== -->
+    <section class="section" id="produits">
+      <div class="sectionHead">
+        <h2>Produits</h2>
+        <button class="btn ghost" id="clearListings" type="button">مسح الإعلانات لي زدتي</button>
+      </div>
+
+      <div id="productsGrid" class="productsGrid"></div>
+
+    </section>
+
+    <!-- ===== Promotions ===== -->
+    <section class="section" id="promotions">
+      <h2>Promotions</h2>
+      <div class="promoGrid">
+        <div class="promoCard">
+          <div class="promoTitle">🔥 Promo اليوم</div>
+          <div class="muted">إعلانات جديدة كتزاد كل نهار.</div>
+        </div>
+        <div class="promoCard">
+          <div class="promoTitle">🚚 Delivery</div>
+          <div class="muted">التوصيل لجميع مدن المغرب.</div>
+        </div>
+        <div class="promoCard">
+          <div class="promoTitle">💬 WhatsApp</div>
+          <div class="muted">تواصل سريع وطلب مباشر.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Add annonce ===== -->
+    <section class="section" id="add">
+      <div class="sectionHead">
+        <h2>Ajouter annonce</h2>
+        <span class="muted">الحقول اللي فيها * ضرورية</span>
+      </div>
+
+      <form id="annonceForm" class="form" novalidate>
+        <div class="grid2">
+          <input id="titre" class="input" placeholder="Titre * (مثال: iPhone 11 64GB)" required maxlength="60" />
+          <input id="prix" class="input" type="number" min="0" max="100000000" placeholder="Prix (DH) *" required />
+        </div>
+
+        <div class="grid2">
+          <select id="categorie" class="input" required>
+            <option value="" disabled selected>Catégorie *</option>
+            <option>Téléphones</option>
+            <option>PC</option>
+            <option>TV</option>
+            <option>Électroménager</option>
+            <option>Gaming</option>
+            <option>Voitures</option>
+            <option>Maisons</option>
+            <option>Autre</option>
+          </select>
+
+          <input id="ville" class="input" placeholder="Ville (ex: oujda)" maxlength="40" />
+        </div>
+
+        <textarea id="description" class="input" rows="4" placeholder="Description (اختياري)" maxlength="500"></textarea>
+
+        <div class="grid2">
+          <input id="photo" class="input" type="file" accept="image/*" />
+          <button class="btn" type="submit">نشر الإعلان</button>
+        </div>
+
+        <div class="muted">
+           <b>2MB</b> 
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== Avis ===== -->
+    <section class="section" id="avis">
+      <h2>Avis</h2>
+      <div class="reviews">
+        <div class="review">⭐⭐⭐⭐⭐ </div>
+        <div class="review">⭐⭐⭐⭐ </div>
+        <div class="review">⭐⭐⭐⭐⭐ </div>
+      </div>
+    </section>
+
+    <!-- ===== A propos ===== -->
+    <section class="section" id="apropos">
+      <h2>À propos</h2>
+      <p class="muted">
+        E-joutia هو marketplace بسيط بحال Avito: كتزيد annonce ديالك وكتخلي الناس يتواصلو معاك مباشرة.
+        الهدف: نخليو البيع والشراء ساهل فالمغرب.
+      </p>
+    </section>
+
+    <!-- ===== Contact ===== -->
+    <section class="section" id="contact">
+      <h2>Contact</h2>
+      <div class="contactBox">
+        <div><b>WhatsApp:</b> 0666771366</div>
+        <div><b>Instagram:</b> ussef_toumi</div>
+        <div class="muted">Delivery: جميع مدن المغرب</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== Modal (Details) ===== -->
+  <div id="modal" class="modal hidden" aria-modal="true" role="dialog">
+    <div class="modalCard" role="document">
+      <button id="closeModal" class="modalX" type="button" aria-label="Fermer">✕</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="muted">© <span id="year"></span> E-joutia — Tous droits réservés.</div>
+  </footer>
+  
+  <script type="module" src="firebase.js"></script>
+<script type="module" src="app.js"></script>
+</html>
+<form id="addForm">
+  ...
+  <button type="submit">Publier</button>
+</form>
