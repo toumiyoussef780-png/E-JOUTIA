@@ -1,343 +1,363 @@
-/* ============================
-   E-JOUTIA - app.js (GitHub Pages friendly)
-   - Publish annonce -> localStorage
-   - Image preview + save (base64)
-   - Render annonces list
-   - Basic search filter
-   ============================ */
+import { auth, db, storage } from "./firebase.js";
 
-(() => {
-  "use strict";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 
-  /* ========= 1) CONFIG: selectors (بدّلهم إلا احتجتي) ========= */
-  const SELECTORS = {
-    // Form (اخترت بزاف ديال الاحتمالات)
-    form:
-      "#addForm, #add-annonce-form, #annonceForm, #form-annonce, form[data-annonce-form]",
+import {
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  where,
+  getDocs,
+  limit,
+} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
-    // Inputs (حاولت ندير fallback names)
-    title:
-      "#titre, #title, input[name='titre'], input[name='title'], input[data-field='title']",
-    price:
-      "#prix, #price, input[name='prix'], input[name='price'], input[data-field='price']",
-    category:
-      "#categorie, #category, select[name='categorie'], select[name='category'], select[data-field='category']",
-    city:
-      "#ville, #city, input[name='ville'], input[name='city'], input[data-field='city']",
-    description:
-      "#description, #desc, textarea[name='description'], textarea[name='desc'], textarea[data-field='description']",
-    phone:
-      "#telephone, #phone, input[name='telephone'], input[name='phone'], input[data-field='phone']",
-    whatsapp:
-      "#whatsapp, input[name='whatsapp'], input[data-field='whatsapp']",
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
 
-    // Image input
-    image:
-      "#image, #photo, #images, input[type='file'][name='image'], input[type='file'][data-field='image'], input[type='file']",
+/* ========= SETTINGS ========= */
+const DEFAULT_WA = "0666771366"; // بدلها برقمك إلا بغيتي
+const LISTINGS_COL = "listings";
 
-    // Where to render annonces
-    list:
-      "#annoncesList, #annonces, #productsList, #produitsList, [data-annonces-list], .annonces-list",
+/* ========= ELEMENTS ========= */
+const yearEl = document.getElementById("year");
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    // Optional: search input
-    search:
-      "#search, #searchInput, input[name='search'], input[type='search'], [data-search]",
+const productsGrid = document.getElementById("productsGrid");
+const resultsCount = document.getElementById("resultsCount");
+const emptyState = document.getElementById("emptyState");
+const statusEl = document.getElementById("status");
 
-    // Optional status element
-    status: "#status, #message, .status, [data-status]",
-  };
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+const cityFilter = document.getElementById("cityFilter");
+const sortSelect = document.getElementById("sortSelect");
 
-  /* ========= 2) STORAGE ========= */
-  const STORAGE_KEY = "ejoutia_annonces_v1";
+const btnPublish = document.getElementById("btnPublish");
+const btnLogin = document.getElementById("btnLogin");
+const btnLogout = document.getElementById("btnLogout");
 
-  function loadAnnonces() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    } catch {
-      return [];
-    }
+const authModal = document.getElementById("authModal");
+const publishModal = document.getElementById("publishModal");
+
+const closeAuth = document.getElementById("closeAuth");
+const closePublish = document.getElementById("closePublish");
+
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const doLogin = document.getElementById("doLogin");
+const doRegister = document.getElementById("doRegister");
+
+const form = document.getElementById("annonceForm");
+const titre = document.getElementById("titre");
+const prix = document.getElementById("prix");
+const categorie = document.getElementById("categorie");
+const ville = document.getElementById("ville");
+const whatsapp = document.getElementById("whatsapp");
+const description = document.getElementById("description");
+const imageInput = document.getElementById("image");
+const imagePreview = document.getElementById("imagePreview");
+
+/* ========= STATE ========= */
+let currentUser = null;
+let allListings = []; // cached for filters
+
+/* ========= HELPERS ========= */
+function showStatus(msg, type = "info") {
+  if (!statusEl) return;
+  statusEl.classList.remove("hidden");
+  statusEl.textContent = msg;
+  statusEl.style.borderColor =
+    type === "error" ? "#fecaca" : type === "success" ? "#bbf7d0" : "#e6e7ea";
+}
+
+function clearStatus() {
+  if (!statusEl) return;
+  statusEl.classList.add("hidden");
+  statusEl.textContent = "";
+}
+
+function openModal(el) {
+  el?.classList.remove("hidden");
+}
+function closeModal(el) {
+  el?.classList.add("hidden");
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function normalizeWA(n) {
+  let x = (n || DEFAULT_WA || "").toString().trim();
+  x = x.replace(/[^\d+]/g, "");
+  if (x.startsWith("0")) x = "212" + x.slice(1);
+  if (x.startsWith("+")) x = x.slice(1);
+  return x;
+}
+
+function formatPrice(p) {
+  const n = Number(p);
+  if (!Number.isFinite(n)) return "";
+  return `${n} DH`;
+}
+
+function applyFilters() {
+  const q = (searchInput?.value || "").trim().toLowerCase();
+  const cat = (categoryFilter?.value || "").trim();
+  const city = (cityFilter?.value || "").trim();
+  const sort = (sortSelect?.value || "new").trim();
+
+  let list = [...allListings];
+
+  if (q) {
+    list = list.filter((x) =>
+      `${x.title} ${x.description} ${x.category} ${x.city}`.toLowerCase().includes(q)
+    );
   }
+  if (cat) list = list.filter((x) => x.category === cat);
+  if (city) list = list.filter((x) => x.city === city);
 
-  function saveAnnonces(list) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  if (sort === "price_asc") list.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  else if (sort === "price_desc") list.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+  else list.sort((a, b) => (b.createdAtMs ?? 0) - (a.createdAtMs ?? 0));
+
+  render(list);
+}
+
+function render(list) {
+  productsGrid.innerHTML = "";
+
+  resultsCount.textContent = `${list.length} annonce(s)`;
+
+  if (list.length === 0) {
+    emptyState.classList.remove("hidden");
+    return;
   }
+  emptyState.classList.add("hidden");
 
-  /* ========= 3) HELPERS ========= */
-  function $(sel) {
-    return document.querySelector(sel);
-  }
+  const frag = document.createDocumentFragment();
 
-  function $all(sel) {
-    return Array.from(document.querySelectorAll(sel));
-  }
+  list.forEach((x) => {
+    const card = document.createElement("div");
+    card.className = "card";
 
-  function escapeHtml(str) {
-    return String(str ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+    const img = document.createElement("img");
+    img.className = "cardImg";
+    img.alt = x.title || "Annonce";
+    img.src = x.imageUrl || "https://dummyimage.com/800x500/eaeaea/777.png&text=E-JOUTIA";
+    card.appendChild(img);
 
-  function toNumber(val) {
-    const n = Number(String(val ?? "").replace(",", ".").trim());
-    return Number.isFinite(n) ? n : null;
-  }
+    const body = document.createElement("div");
+    body.className = "cardBody";
 
-  function formatPrice(price) {
-    if (price == null) return "";
-    return `${price} DH`;
-  }
+    body.innerHTML = `
+      <h4 class="cardTitle">${escapeHtml(x.title)}</h4>
+      <div class="cardMeta">
+        <div>${escapeHtml(x.category || "")}${x.city ? " • " + escapeHtml(x.city) : ""}</div>
+        <div class="price">${escapeHtml(formatPrice(x.price))}</div>
+      </div>
+      <div class="cardDesc">${escapeHtml((x.description || "").slice(0, 120))}${(x.description || "").length > 120 ? "…" : ""}</div>
+      <div class="cardBtns">
+        <a class="btn primary" target="_blank" rel="noopener" href="https://wa.me/${normalizeWA(x.whatsapp)}?text=${encodeURIComponent("سلام، بغيت هاد الإعلان: " + (x.title || "") + " | الثمن: " + formatPrice(x.price))}">
+          WhatsApp
+        </a>
+        ${currentUser && x.userId === currentUser.uid ? `<button class="btn danger" data-del="${x.id}">Supprimer</button>` : ""}
+      </div>
+    `;
 
-  function showStatus(msg, type = "info") {
-    const el = $(SELECTORS.status);
-    if (!el) {
-      // fallback بسيط
-      if (type === "error") console.error(msg);
-      else console.log(msg);
-      return;
-    }
-    el.textContent = msg;
-    el.style.display = "block";
-    el.style.padding = "10px";
-    el.style.margin = "10px 0";
-    el.style.borderRadius = "10px";
-    el.style.fontWeight = "600";
-    el.style.background =
-      type === "error"
-        ? "#ffe5e5"
-        : type === "success"
-        ? "#e7ffe8"
-        : "#e8f0ff";
-    el.style.color = "#111";
-  }
+    card.appendChild(body);
+    frag.appendChild(card);
+  });
 
-  function readFileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = () => reject(new Error("File read error"));
-      fr.readAsDataURL(file);
-    });
-  }
+  productsGrid.appendChild(frag);
 
-  function normalizeWhatsapp(phone, whatsapp) {
-    // إذا عطاك whatsapp استعملو، وإلا استعمل phone
-    let n = (whatsapp || phone || "").toString().trim();
-    n = n.replace(/[^\d+]/g, "");
-    // المغرب: إذا بدا بـ 0 => بدلو لـ 212
-    if (n.startsWith("0")) n = "212" + n.slice(1);
-    if (n.startsWith("+")) n = n.slice(1);
-    return n;
-  }
-
-  /* ========= 4) RENDER ========= */
-  function renderAnnonces(list, filterText = "") {
-    const container = $(SELECTORS.list);
-    if (!container) return;
-
-    const q = filterText.trim().toLowerCase();
-    const filtered = !q
-      ? list
-      : list.filter((a) => {
-          const hay = `${a.title} ${a.description} ${a.category} ${a.city}`.toLowerCase();
-          return hay.includes(q);
-        });
-
-    if (filtered.length === 0) {
-      container.innerHTML =
-        `<div style="padding:12px;border:1px solid #ddd;border-radius:12px;">
-          <b>مكاين حتى إعلان دابا</b><br/>
-          جرّب ضيف أول annonce من الفورم.
-        </div>`;
-      return;
-    }
-
-    container.innerHTML = filtered
-      .map((a) => {
-        const title = escapeHtml(a.title);
-        const desc = escapeHtml(a.description || "");
-        const cat = escapeHtml(a.category || "");
-        const city = escapeHtml(a.city || "");
-        const price = a.price != null ? escapeHtml(formatPrice(a.price)) : "";
-        const img = a.imageDataUrl
-          ? `<img src="${a.imageDataUrl}" alt="${title}" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-bottom:10px;">`
-          : "";
-
-        const wa = normalizeWhatsapp(a.phone, a.whatsapp);
-        const waText = encodeURIComponent(
-          `سلام، بغيت هاد الإعلان: ${a.title}\nالثمن: ${formatPrice(a.price)}\nالمدينة: ${a.city || ""}`
-        );
-        const waLink = wa
-          ? `https://wa.me/${wa}?text=${waText}`
-          : "";
-
-        return `
-        <div class="annonce-card" style="border:1px solid #e6e6e6;border-radius:14px;padding:12px;margin:10px 0;background:#fff;">
-          ${img}
-          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
-            <div style="flex:1;">
-              <div style="font-size:18px;font-weight:800;">${title}</div>
-              <div style="opacity:.75;margin-top:4px;">${cat}${cat && city ? " • " : ""}${city}</div>
-            </div>
-            <div style="font-size:16px;font-weight:900;white-space:nowrap;">${price}</div>
-          </div>
-
-          ${desc ? `<div style="margin-top:10px;line-height:1.4;">${desc}</div>` : ""}
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
-            ${
-              waLink
-                ? `<a href="${waLink}" target="_blank" rel="noopener" style="text-decoration:none;padding:10px 12px;border-radius:12px;background:#25D366;color:#fff;font-weight:800;">Order WhatsApp</a>`
-                : ""
-            }
-            <button data-del="${a.id}" style="padding:10px 12px;border-radius:12px;border:1px solid #ddd;background:#f7f7f7;font-weight:700;cursor:pointer;">
-              Supprimer
-            </button>
-          </div>
-        </div>`;
-      })
-      .join("");
-
-    // delete handlers
-    $all("[data-del]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-del");
-        const next = loadAnnonces().filter((x) => String(x.id) !== String(id));
-        saveAnnonces(next);
-        renderAnnonces(next, ($(SELECTORS.search)?.value || "").trim());
-        showStatus("✅ تم حذف الإعلان", "success");
-      });
-    });
-  }
-
-  /* ========= 5) INIT ========= */
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = $(SELECTORS.form);
-    const inputTitle = $(SELECTORS.title);
-    const inputPrice = $(SELECTORS.price);
-    const inputCategory = $(SELECTORS.category);
-    const inputCity = $(SELECTORS.city);
-    const inputDesc = $(SELECTORS.description);
-    const inputPhone = $(SELECTORS.phone);
-    const inputWhatsapp = $(SELECTORS.whatsapp);
-    const inputImage = $(SELECTORS.image);
-    const searchInput = $(SELECTORS.search);
-
-    // render existing annonces
-    renderAnnonces(loadAnnonces());
-
-    // search
-    if (searchInput) {
-      searchInput.addEventListener("input", () => {
-        renderAnnonces(loadAnnonces(), searchInput.value || "");
-      });
-    }
-
-    // if no form found => show hint
-    if (!form) {
-      showStatus(
-        "⚠️ ما لقيتش فورم ديال نشر الإعلان. خاص الفورم يكون عندو id بحال addForm أو form-annonce (ولا صيفط ليا IDs باش نضبطهم).",
-        "error"
-      );
-      return;
-    }
-
-    // image preview (optional)
-    let previewEl = document.getElementById("imagePreview");
-    if (!previewEl && inputImage) {
-      previewEl = document.createElement("img");
-      previewEl.id = "imagePreview";
-      previewEl.style.cssText =
-        "display:none;width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-top:10px;border:1px solid #eee;";
-      inputImage.insertAdjacentElement("afterend", previewEl);
-
-      inputImage.addEventListener("change", async () => {
-        const file = inputImage.files?.[0];
-        if (!file) {
-          previewEl.style.display = "none";
-          previewEl.src = "";
-          return;
-        }
-        // limit size ~ 1.5MB
-        if (file.size > 1.5 * 1024 * 1024) {
-          showStatus("⚠️ الصورة كبيرة بزاف. حاول صورة أقل من 1.5MB.", "error");
-          inputImage.value = "";
-          previewEl.style.display = "none";
-          return;
-        }
-        const url = await readFileAsDataURL(file);
-        previewEl.src = url;
-        previewEl.style.display = "block";
-      });
-    }
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const title = (inputTitle?.value || "").trim();
-      const price = toNumber(inputPrice?.value);
-      const category = (inputCategory?.value || "").trim();
-      const city = (inputCity?.value || "").trim();
-      const description = (inputDesc?.value || "").trim();
-      const phone = (inputPhone?.value || "").trim();
-      const whatsapp = (inputWhatsapp?.value || "").trim();
-
-      if (!title) {
-        showStatus("⚠️ دخل العنوان (Titre) ديال الإعلان.", "error");
-        inputTitle?.focus();
-        return;
+  // delete handlers
+  document.querySelectorAll("[data-del]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-del");
+      if (!id) return;
+      try {
+        await deleteDoc(doc(db, LISTINGS_COL, id));
+        showStatus("✅ Annonce supprimée", "success");
+      } catch (e) {
+        console.error(e);
+        showStatus("❌ تعذر حذف الإعلان", "error");
       }
-      if (price == null) {
-        showStatus("⚠️ دخل الثمن (Prix) بشكل صحيح.", "error");
-        inputPrice?.focus();
-        return;
-      }
-
-      // read image (optional)
-      let imageDataUrl = "";
-      const file = inputImage?.files?.[0];
-      if (file) {
-        if (file.size > 1.5 * 1024 * 1024) {
-          showStatus("⚠️ الصورة كبيرة بزاف. حاول صورة أقل من 1.5MB.", "error");
-          return;
-        }
-        try {
-          imageDataUrl = await readFileAsDataURL(file);
-        } catch {
-          showStatus("⚠️ وقع مشكل فقراءة الصورة.", "error");
-          return;
-        }
-      }
-
-      const annonce = {
-        id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-        title,
-        price,
-        category,
-        city,
-        description,
-        phone,
-        whatsapp,
-        imageDataUrl,
-        createdAt: new Date().toISOString(),
-      };
-
-      const list = loadAnnonces();
-      list.unshift(annonce);
-      saveAnnonces(list);
-
-      // reset
-      form.reset();
-      const preview = document.getElementById("imagePreview");
-      if (preview) {
-        preview.src = "";
-        preview.style.display = "none";
-      }
-
-      renderAnnonces(list, (searchInput?.value || "").trim());
-      showStatus("✅ Annonce publiée بنجاح!", "success");
     });
   });
-})();
+}
+
+/* ========= AUTH UI ========= */
+btnLogin?.addEventListener("click", () => openModal(authModal));
+closeAuth?.addEventListener("click", () => closeModal(authModal));
+
+btnPublish?.addEventListener("click", () => {
+  if (!currentUser) {
+    showStatus("⚠️ خاصك تسجّل الدخول باش تنشر", "error");
+    openModal(authModal);
+    return;
+  }
+  openModal(publishModal);
+});
+
+closePublish?.addEventListener("click", () => closeModal(publishModal));
+
+doLogin?.addEventListener("click", async () => {
+  clearStatus();
+  try {
+    await signInWithEmailAndPassword(auth, authEmail.value.trim(), authPassword.value);
+    closeModal(authModal);
+    showStatus("✅ مرحبا! تسجلت الدخول.", "success");
+  } catch (e) {
+    console.error(e);
+    showStatus("❌ البريد أو كلمة المرور غير صحيحة", "error");
+  }
+});
+
+doRegister?.addEventListener("click", async () => {
+  clearStatus();
+  try {
+    await createUserWithEmailAndPassword(auth, authEmail.value.trim(), authPassword.value);
+    closeModal(authModal);
+    showStatus("✅ تم إنشاء الحساب بنجاح!", "success");
+  } catch (e) {
+    console.error(e);
+    showStatus("❌ ما قدرناش نسجلو الحساب (جرّب ايميل صحيح وباسورد قوي)", "error");
+  }
+});
+
+btnLogout?.addEventListener("click", async () => {
+  await signOut(auth);
+});
+
+/* ========= IMAGE PREVIEW ========= */
+imageInput?.addEventListener("change", async () => {
+  const f = imageInput.files?.[0];
+  if (!f) {
+    imagePreview?.classList.add("hidden");
+    imagePreview.src = "";
+    return;
+  }
+  if (f.size > 2 * 1024 * 1024) {
+    showStatus("⚠️ الصورة كبيرة بزاف (أقل من 2MB)", "error");
+    imageInput.value = "";
+    return;
+  }
+  const url = URL.createObjectURL(f);
+  imagePreview.src = url;
+  imagePreview.classList.remove("hidden");
+});
+
+/* ========= PUBLISH ========= */
+form?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearStatus();
+
+  if (!currentUser) {
+    showStatus("⚠️ خاصك تسجّل الدخول", "error");
+    openModal(authModal);
+    return;
+  }
+
+  const title = (titre.value || "").trim();
+  const price = Number(String(prix.value || "").replace(",", "."));
+  const category = (categorie.value || "").trim();
+  const city = (ville.value || "").trim();
+  const desc = (description.value || "").trim();
+  const wa = (whatsapp.value || DEFAULT_WA || "").trim();
+
+  if (!title || !Number.isFinite(price) || !category || !city) {
+    showStatus("⚠️ عَمّر العنوان/الثمن/الصنف/المدينة", "error");
+    return;
+  }
+
+  try {
+    // upload image (optional)
+    let imageUrl = "";
+    const file = imageInput.files?.[0];
+    if (file) {
+      const path = `listingImages/${currentUser.uid}/${Date.now()}_${file.name}`.replaceAll(" ", "_");
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      imageUrl = await getDownloadURL(storageRef);
+    }
+
+    const payload = {
+      title,
+      price,
+      category,
+      city,
+      description: desc,
+      whatsapp: wa,
+      imageUrl,
+      userId: currentUser.uid,
+      createdAtMs: Date.now(),
+    };
+
+    await addDoc(collection(db, LISTINGS_COL), payload);
+
+    form.reset();
+    imagePreview?.classList.add("hidden");
+    imagePreview.src = "";
+    closeModal(publishModal);
+    showStatus("✅ Annonce publiée!", "success");
+  } catch (err) {
+    console.error(err);
+    showStatus("❌ وقع مشكل فالنشر. شوف Console.", "error");
+  }
+});
+
+/* ========= LIVE LISTEN ========= */
+function listenListings() {
+  const q = query(collection(db, LISTINGS_COL), orderBy("createdAtMs", "desc"), limit(200));
+  return onSnapshot(
+    q,
+    (snap) => {
+      allListings = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      applyFilters();
+    },
+    (err) => {
+      console.error(err);
+      showStatus("❌ Firestore ما خدامش. راجع Rules وتهيئة Firebase.", "error");
+    }
+  );
+}
+
+/* ========= FILTERS ========= */
+[searchInput, categoryFilter, cityFilter, sortSelect].forEach((el) => {
+  el?.addEventListener("input", applyFilters);
+  el?.addEventListener("change", applyFilters);
+});
+
+/* ========= AUTH STATE ========= */
+onAuthStateChanged(auth, (user) => {
+  currentUser = user || null;
+
+  if (currentUser) {
+    btnLogin?.classList.add("hidden");
+    btnLogout?.classList.remove("hidden");
+  } else {
+    btnLogin?.classList.remove("hidden");
+    btnLogout?.classList.add("hidden");
+  }
+});
+
+/* start */
+listenListings();
