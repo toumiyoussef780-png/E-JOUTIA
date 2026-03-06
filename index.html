@@ -3,66 +3,335 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>E-JOUTIA • Marketplace</title>
+  <title>E-JOUTIA • Marketplace Premium</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
+  <!-- TOPBAR -->
   <header class="topbar">
-    <div class="brand">
-      <div class="logo">E</div>
-      <div>
-        <div class="brandName">E-JOUTIA</div>
-        <div class="tagline">Marketplace • Maroc</div>
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo">E</div>
+        <div>
+          <div class="brandName">E-JOUTIA</div>
+          <div class="tagline">Marketplace Premium • Maroc</div>
+        </div>
       </div>
-    </div>
 
-    <div class="actions">
-      <button id="btnPublish" class="btn primary">Publier annonce</button>
-      <button id="btnLogin" class="btn">Connexion</button>
-      <button id="btnLogout" class="btn danger hidden">Déconnexion</button>
+      <nav class="navLinks">
+        <a href="#hero">Accueil</a>
+        <a href="#categories">Catégories</a>
+        <a href="#featured">En vedette</a>
+        <a href="#productsSection">Annonces</a>
+        <a href="#reviews">Avis</a>
+        <a href="#footer">Contact</a>
+      </nav>
+
+      <div class="actions">
+        <button id="btnPublish" class="btn primary">Publier annonce</button>
+        <button id="btnLogin" class="btn">Connexion</button>
+        <button id="btnLogout" class="btn danger hidden">Déconnexion</button>
+      </div>
     </div>
   </header>
 
-  <main class="container">
-    <section class="filters">
-      <input id="searchInput" type="search" placeholder="Rechercher (ex: iPhone, PS5…)" />
-      <select id="categoryFilter">
-        <option value="">Toutes catégories</option>
-        <option>Electronique</option>
-        <option>Maison</option>
-        <option>Mode</option>
-        <option>Auto</option>
-        <option>Services</option>
-        <option>Autre</option>
-      </select>
-      <select id="cityFilter">
-        <option value="">Toutes villes</option>
-        <option>Casablanca</option>
-        <option>Rabat</option>
-        <option>Marrakech</option>
-        <option>Tanger</option>
-        <option>Agadir</option>
-        <option>Fès</option>
-        <option>Autre</option>
-      </select>
-      <select id="sortSelect">
-        <option value="new">Plus récent</option>
-        <option value="price_asc">Prix ↑</option>
-        <option value="price_desc">Prix ↓</option>
-      </select>
+  <main>
+    <!-- HERO -->
+    <section id="hero" class="hero">
+      <div class="hero-overlay"></div>
+      <div class="container hero-content">
+        <div class="hero-text">
+          <span class="hero-badge">Marketplace nouvelle génération au Maroc</span>
+          <h1>Achetez, vendez et trouvez <span>les meilleures offres</span> en quelques clics</h1>
+          <p>
+            E-JOUTIA vous aide à découvrir des annonces de qualité partout au Maroc :
+            électronique, maison, auto, mode, services et bien plus encore.
+          </p>
+
+          <div class="hero-buttons">
+            <button id="heroPublishBtn" class="btn primary large">Publier maintenant</button>
+            <a href="#productsSection" class="btn ghost large">Explorer les annonces</a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat-card">
+              <strong>+100</strong>
+              <span>Annonces actives</span>
+            </div>
+            <div class="stat-card">
+              <strong>+20</strong>
+              <span>Catégories</span>
+            </div>
+            <div class="stat-card">
+              <strong>Maroc</strong>
+              <span>Livraison & contact rapide</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="hero-card floating-card">
+            <div class="floating-badge">En vedette</div>
+            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80" alt="Produit premium" />
+            <div class="hero-card-content">
+              <h3>Sneakers premium</h3>
+              <p>Style moderne • Livraison Maroc</p>
+              <strong>À partir de 799 DH</strong>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="meta">
-      <div id="resultsCount" class="muted"></div>
-      <div id="status" class="status hidden"></div>
+    <!-- CATEGORIES -->
+    <section id="categories" class="section categories-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-kicker">Catégories populaires</span>
+          <h2>Explorez rapidement ce qui vous intéresse</h2>
+          <p>Choisissez votre univers et découvrez les meilleures offres du moment.</p>
+        </div>
+
+        <div class="categories-grid">
+          <article class="category-card">
+            <div class="category-icon">📱</div>
+            <h3>Electronique</h3>
+            <p>Smartphones, PC, consoles, accessoires et gadgets tendance.</p>
+          </article>
+
+          <article class="category-card">
+            <div class="category-icon">🏠</div>
+            <h3>Maison</h3>
+            <p>Meubles, décoration, électroménager et équipements pratiques.</p>
+          </article>
+
+          <article class="category-card">
+            <div class="category-icon">👕</div>
+            <h3>Mode</h3>
+            <p>Vêtements, chaussures, sacs et pièces stylées au meilleur prix.</p>
+          </article>
+
+          <article class="category-card">
+            <div class="category-icon">🚗</div>
+            <h3>Auto</h3>
+            <p>Pièces, accessoires auto, équipements et annonces utiles.</p>
+          </article>
+
+          <article class="category-card">
+            <div class="category-icon">🛠️</div>
+            <h3>Services</h3>
+            <p>Prestations rapides, offres locales et services pour tous les besoins.</p>
+          </article>
+
+          <article class="category-card">
+            <div class="category-icon">✨</div>
+            <h3>Autre</h3>
+            <p>Des produits variés, des trouvailles uniques et des offres spéciales.</p>
+          </article>
+        </div>
+      </div>
     </section>
 
-    <section id="productsGrid" class="grid"></section>
+    <!-- FEATURED -->
+    <section id="featured" class="section featured-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-kicker">Sélection premium</span>
+          <h2>Annonces en vedette</h2>
+          <p>Une vitrine élégante pour inspirer confiance et donner envie de parcourir le site.</p>
+        </div>
 
-    <section id="emptyState" class="empty hidden">
-      <h3>Aucune annonce pour le moment</h3>
-      <p>Publie la première annonce et partage le lien ✨</p>
+        <div class="featured-grid">
+          <article class="featured-card large">
+            <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=80" alt="Smartphone" />
+            <div class="featured-overlay">
+              <span class="chip">Electronique</span>
+              <h3>Smartphones dernière génération</h3>
+              <p>Performance, design, qualité et bons prix.</p>
+            </div>
+          </article>
+
+          <article class="featured-card">
+            <img src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80" alt="Maison" />
+            <div class="featured-overlay">
+              <span class="chip">Maison</span>
+              <h3>Maison & déco chic</h3>
+            </div>
+          </article>
+
+          <article class="featured-card">
+            <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1200&q=80" alt="Mode" />
+            <div class="featured-overlay">
+              <span class="chip">Mode</span>
+              <h3>Mode & lifestyle</h3>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROMO BANNER -->
+    <section class="promo-banner">
+      <div class="container promo-inner">
+        <div>
+          <span class="section-kicker">Vendez rapidement</span>
+          <h2>Publiez votre annonce en quelques clics et touchez plus d’acheteurs</h2>
+          <p>Ajoutez vos photos, votre prix et votre WhatsApp pour recevoir des messages rapidement.</p>
+        </div>
+        <button id="promoPublishBtn" class="btn primary large">Déposer une annonce</button>
+      </div>
+    </section>
+
+    <!-- FILTERS + PRODUCTS -->
+    <section id="productsSection" class="section products-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-kicker">Toutes les annonces</span>
+          <h2>Trouvez ce qu’il vous faut</h2>
+          <p>Utilisez les filtres pour rechercher plus rapidement parmi les produits disponibles.</p>
+        </div>
+
+        <div class="market-layout">
+          <aside class="filters-panel">
+            <h3>Filtres</h3>
+
+            <div class="filter-group">
+              <label for="searchInput">Recherche</label>
+              <input id="searchInput" type="search" placeholder="Rechercher (ex: iPhone, PS5…)" />
+            </div>
+
+            <div class="filter-group">
+              <label for="categoryFilter">Catégorie</label>
+              <select id="categoryFilter">
+                <option value="">Toutes catégories</option>
+                <option>Electronique</option>
+                <option>Maison</option>
+                <option>Mode</option>
+                <option>Auto</option>
+                <option>Services</option>
+                <option>Autre</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="cityFilter">Ville</label>
+              <select id="cityFilter">
+                <option value="">Toutes villes</option>
+                <option>Casablanca</option>
+                <option>Rabat</option>
+                <option>Marrakech</option>
+                <option>Tanger</option>
+                <option>Agadir</option>
+                <option>Fès</option>
+                <option>Autre</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="sortSelect">Trier par</label>
+              <select id="sortSelect">
+                <option value="new">Plus récent</option>
+                <option value="price_asc">Prix ↑</option>
+                <option value="price_desc">Prix ↓</option>
+              </select>
+            </div>
+
+            <div class="filters-help">
+              <p>💡 Astuce: utilisez les filtres pour trouver rapidement les meilleures offres.</p>
+            </div>
+          </aside>
+
+          <div class="products-content">
+            <div class="meta">
+              <div id="resultsCount" class="muted"></div>
+              <div id="status" class="status hidden"></div>
+            </div>
+
+            <section id="productsGrid" class="grid"></section>
+
+            <section id="emptyState" class="empty hidden">
+              <h3>Aucune annonce pour le moment</h3>
+              <p>Publie la première annonce et partage le lien ✨</p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHY US -->
+    <section class="section why-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-kicker">Pourquoi E-JOUTIA ?</span>
+          <h2>Une expérience simple, moderne et rassurante</h2>
+          <p>Nous mettons l’accent sur la clarté, la rapidité et une présentation élégante des annonces.</p>
+        </div>
+
+        <div class="why-grid">
+          <article class="why-card">
+            <div class="why-icon">⚡</div>
+            <h3>Rapide</h3>
+            <p>Publiez une annonce en quelques minutes et commencez à recevoir des messages rapidement.</p>
+          </article>
+
+          <article class="why-card">
+            <div class="why-icon">🔒</div>
+            <h3>Simple & sécurisé</h3>
+            <p>Une interface claire, facile à utiliser et pensée pour inspirer confiance.</p>
+          </article>
+
+          <article class="why-card">
+            <div class="why-icon">💬</div>
+            <h3>Contact direct</h3>
+            <p>Ajoutez votre WhatsApp pour échanger facilement avec les acheteurs intéressés.</p>
+          </article>
+
+          <article class="why-card">
+            <div class="why-icon">🇲🇦</div>
+            <h3>Partout au Maroc</h3>
+            <p>Une plateforme pensée pour les vendeurs et acheteurs de toutes les villes du pays.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- REVIEWS -->
+    <section id="reviews" class="section reviews-section">
+      <div class="container">
+        <div class="section-head">
+          <span class="section-kicker">Ils nous font confiance</span>
+          <h2>Avis de nos utilisateurs</h2>
+          <p>Un espace qui rassure les visiteurs et donne plus de valeur à la plateforme.</p>
+        </div>
+
+        <div class="reviews-grid">
+          <article class="review-card">
+            <p>“Le site est clair, beau et les annonces sont faciles à trouver. Très bonne expérience.”</p>
+            <strong>— Yassine, Casablanca</strong>
+          </article>
+
+          <article class="review-card">
+            <p>“J’ai publié mon produit rapidement et j’ai reçu des messages sur WhatsApp le même jour.”</p>
+            <strong>— Salma, Rabat</strong>
+          </article>
+
+          <article class="review-card">
+            <p>“Le design donne confiance et ça change des sites trop simples ou mal organisés.”</p>
+            <strong>— Mehdi, Marrakech</strong>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="section cta-section">
+      <div class="container cta-box">
+        <span class="section-kicker">Passez à l’action</span>
+        <h2>Vous avez un produit à vendre ? Donnez-lui la visibilité qu’il mérite.</h2>
+        <p>Publiez votre annonce dès maintenant et commencez à recevoir des demandes.</p>
+        <button id="ctaPublishBtn" class="btn primary large">Publier mon annonce</button>
+      </div>
     </section>
   </main>
 
@@ -151,11 +420,58 @@
     </div>
   </div>
 
-  <footer class="footer">
-    <div>© <span id="year"></span> E-JOUTIA • Built with Firebase</div>
+  <!-- FOOTER -->
+  <footer id="footer" class="footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <div class="brand">
+          <div class="logo">E</div>
+          <div>
+            <div class="brandName">E-JOUTIA</div>
+            <div class="tagline">Marketplace Premium • Maroc</div>
+          </div>
+        </div>
+        <p>
+          Une plateforme moderne pour acheter et vendre plus facilement au Maroc,
+          avec un style premium et une expérience simple.
+        </p>
+      </div>
+
+      <div>
+        <h4>Navigation</h4>
+        <ul class="footer-links">
+          <li><a href="#hero">Accueil</a></li>
+          <li><a href="#categories">Catégories</a></li>
+          <li><a href="#featured">En vedette</a></li>
+          <li><a href="#productsSection">Annonces</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Contact</h4>
+        <ul class="footer-links">
+          <li><a href="https://wa.me/212666771366" target="_blank" rel="noopener">WhatsApp</a></li>
+          <li><a href="https://instagram.com/ussef_toumi" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="#">Support</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Infos</h4>
+        <ul class="footer-links">
+          <li><a href="#">À propos</a></li>
+          <li><a href="#">Confidentialité</a></li>
+          <li><a href="#">Conditions</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <div>© <span id="year"></span> E-JOUTIA • Tous droits réservés</div>
+    </div>
   </footer>
 
-<script type="module" src="./firebase.js"></script>
-<script type="module" src="./app.js"></script>
+  <script type="module" src="./firebase.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
